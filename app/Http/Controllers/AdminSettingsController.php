@@ -26,26 +26,30 @@ class AdminSettingsController extends Controller
     {
         $this->authorize('viewAny', \App\Models\User::class);
 
-        $fields = $request->only([
-            'site_name',
-            'site_description',
-            'mail_mailer',
-            'mail_host',
-            'mail_port',
-            'mail_username',
-            'mail_password',
-            'mail_encryption',
-            'mail_from_address',
-            'mail_from_name',
+        $validated = $request->validate([
+            'site_name' => ['nullable', 'string', 'max:120'],
+            'site_description' => ['nullable', 'string', 'max:1000'],
+            'mail_mailer' => ['nullable', 'string', 'in:log,smtp,sendmail,array'],
+            'mail_host' => ['nullable', 'string', 'max:255'],
+            'mail_port' => ['nullable', 'integer', 'between:1,65535'],
+            'mail_username' => ['nullable', 'string', 'max:255'],
+            'mail_password' => ['nullable', 'string', 'max:1000'],
+            'mail_encryption' => ['nullable', 'string', 'in:tls,ssl,null'],
+            'mail_from_address' => ['nullable', 'email', 'max:255'],
+            'mail_from_name' => ['nullable', 'string', 'max:120'],
         ]);
 
-        foreach ($fields as $key => $value) {
-            if ($value !== null && $value !== '') {
+        foreach ($validated as $key => $value) {
+            if ($key === 'mail_password' && ($value === null || $value === '')) {
+                continue;
+            }
+
+            if ($value !== null) {
                 Setting::setValue($key, $value);
             }
         }
 
-        return back()->with('status', 'Settings saved.');
+        return back()->with('status', 'Settings saved securely.');
     }
 
     public function testEmail(Request $request)

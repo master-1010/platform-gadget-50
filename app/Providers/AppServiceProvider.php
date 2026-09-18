@@ -3,59 +3,42 @@
 namespace App\Providers;
 
 use App\Models\Setting;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        // Application services are registered here.
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
+        if (! Schema::hasTable('settings')) {
+            return;
+        }
+
         $settings = Setting::query()->pluck('value', 'key');
 
-        if ($settings->has('site_name')) {
-            config()->set('app.name', $settings->get('site_name'));
+        $this->setIfPresent('app.name', $settings, 'site_name');
+        $this->setIfPresent('mail.default', $settings, 'mail_mailer');
+        $this->setIfPresent('mail.mailers.smtp.host', $settings, 'mail_host');
+        $this->setIfPresent('mail.mailers.smtp.port', $settings, 'mail_port', fn ($value) => (int) $value);
+        $this->setIfPresent('mail.mailers.smtp.username', $settings, 'mail_username');
+        $this->setIfPresent('mail.mailers.smtp.password', $settings, 'mail_password', fn ($value) => Setting::getValue('mail_password'));
+        $this->setIfPresent('mail.mailers.smtp.encryption', $settings, 'mail_encryption');
+        $this->setIfPresent('mail.from.address', $settings, 'mail_from_address');
+        $this->setIfPresent('mail.from.name', $settings, 'mail_from_name');
+    }
+
+    private function setIfPresent(string $configKey, $settings, string $settingKey, ?callable $transform = null): void
+    {
+        if (! $settings->has($settingKey)) {
+            return;
         }
 
-        if ($settings->has('mail_mailer')) {
-            config()->set('mail.default', $settings->get('mail_mailer'));
-        }
-
-        if ($settings->has('mail_host')) {
-            config()->set('mail.mailers.smtp.host', $settings->get('mail_host'));
-        }
-
-        if ($settings->has('mail_port')) {
-            config()->set('mail.mailers.smtp.port', (int) $settings->get('mail_port'));
-        }
-
-        if ($settings->has('mail_username')) {
-            config()->set('mail.mailers.smtp.username', $settings->get('mail_username'));
-        }
-
-        if ($settings->has('mail_password')) {
-            config()->set('mail.mailers.smtp.password', $settings->get('mail_password'));
-        }
-
-        if ($settings->has('mail_encryption')) {
-            config()->set('mail.mailers.smtp.encryption', $settings->get('mail_encryption'));
-        }
-
-        if ($settings->has('mail_from_address')) {
-            config()->set('mail.from.address', $settings->get('mail_from_address'));
-        }
-
-        if ($settings->has('mail_from_name')) {
-            config()->set('mail.from.name', $settings->get('mail_from_name'));
-        }
+        $value = $transform ? $transform($settings->get($settingKey)) : $settings->get($settingKey);
+        config()->set($configKey, $value);
     }
 }
