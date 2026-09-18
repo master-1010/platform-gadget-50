@@ -1,9 +1,75 @@
 <?php
-use Illuminate\Database\Migrations\Migration; use Illuminate\Database\Schema\Blueprint; use Illuminate\Support\Facades\Schema;
-return new class extends Migration { public function up(): void {
- Schema::create('categories', function(Blueprint $t){$t->id();$t->string('name');$t->string('slug')->unique();$t->text('description')->nullable();$t->boolean('active')->default(true);$t->unsignedInteger('sort_order')->default(0);$t->timestamps();});
- Schema::create('posts', function(Blueprint $t){$t->id();$t->foreignId('user_id')->constrained()->cascadeOnDelete();$t->foreignId('category_id')->constrained()->restrictOnDelete();$t->string('title');$t->string('slug')->unique();$t->string('excerpt',500)->nullable();$t->longText('content');$t->string('featured_image')->nullable();$t->string('external_image_url')->nullable();$t->boolean('anonymous')->default(false);$t->string('status')->default('pending')->index();$t->text('rejection_reason')->nullable();$t->unsignedBigInteger('views')->default(0);$t->unsignedBigInteger('likes_count')->default(0);$t->timestamp('published_at')->nullable()->index();$t->timestamps();$t->softDeletes();});
- Schema::create('comments', function(Blueprint $t){$t->id();$t->foreignId('post_id')->constrained()->cascadeOnDelete();$t->foreignId('user_id')->nullable()->constrained()->nullOnDelete();$t->string('name');$t->string('email')->nullable();$t->text('body');$t->string('status')->default('pending')->index();$t->timestamps();});
- Schema::create('likes', function(Blueprint $t){$t->id();$t->foreignId('post_id')->constrained()->cascadeOnDelete();$t->string('token',64);$t->timestamps();$t->unique(['post_id','token']);});
- Schema::create('settings', function(Blueprint $t){$t->id();$t->string('key')->unique();$t->text('value')->nullable();$t->timestamps();});
-} public function down(): void { Schema::dropIfExists('settings');Schema::dropIfExists('likes');Schema::dropIfExists('comments');Schema::dropIfExists('posts');Schema::dropIfExists('categories'); }};
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create('settings', function (Blueprint $table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->longText('value')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('categories', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->text('description')->nullable();
+            $table->boolean('active')->default(true);
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('posts', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('category_id')->constrained()->restrictOnDelete();
+            $table->string('title');
+            $table->string('slug')->unique();
+            $table->string('excerpt', 500)->nullable();
+            $table->longText('content');
+            $table->string('featured_image')->nullable();
+            $table->string('external_image_url')->nullable();
+            $table->boolean('anonymous')->default(false);
+            $table->string('status')->default('pending')->index();
+            $table->text('rejection_reason')->nullable();
+            $table->unsignedBigInteger('views')->default(0);
+            $table->unsignedBigInteger('likes_count')->default(0);
+            $table->timestamp('published_at')->nullable()->index();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('comments', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('post_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('name');
+            $table->string('email')->nullable();
+            $table->text('body');
+            $table->string('status')->default('pending')->index();
+            $table->timestamps();
+        });
+
+        Schema::create('likes', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('post_id')->constrained()->cascadeOnDelete();
+            $table->string('token', 64);
+            $table->timestamps();
+            $table->unique(['post_id', 'token']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('likes');
+        Schema::dropIfExists('comments');
+        Schema::dropIfExists('posts');
+        Schema::dropIfExists('categories');
+        Schema::dropIfExists('settings');
+    }
+};
