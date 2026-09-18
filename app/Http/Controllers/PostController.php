@@ -37,11 +37,11 @@ class PostController extends Controller
             'anonymous' => ['boolean'],
         ]);
 
-        $slugBase = Str::slug($validated['title']);
-        $slug = $slugBase !== '' ? $slugBase : 'post';
-        $slug = $slug . '-' . Str::lower(Str::random(6));
+        $slug = Str::slug($validated['title']) ?: 'post';
+        $slug .= '-' . Str::lower(Str::random(6));
 
         $postData = [
+            'user_id' => Auth::id(),
             'title' => $validated['title'],
             'category_id' => $validated['category_id'],
             'excerpt' => $validated['excerpt'] ?? null,
@@ -56,7 +56,7 @@ class PostController extends Controller
             $postData['featured_image'] = $request->file('featured_image')->store('posts', 'public');
         }
 
-        Auth::user()->posts()->create($postData);
+        $post = Auth::user()->posts()->create($postData);
 
         return redirect()->route('dashboard.posts.index')->with('status', 'Post submitted for moderation.');
     }
@@ -83,7 +83,10 @@ class PostController extends Controller
         ]);
 
         $post->update([
-            ...$validated,
+            'title' => $validated['title'],
+            'category_id' => $validated['category_id'],
+            'excerpt' => $validated['excerpt'] ?? null,
+            'content' => $validated['content'],
             'status' => 'pending',
         ]);
 
