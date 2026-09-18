@@ -37,13 +37,53 @@ class User extends Authenticatable
         return $this->hasMany(Post::class);
     }
 
+    public function loginAttempts()
+    {
+        return $this->hasMany(LoginAttempt::class);
+    }
+
+    public function securityLockouts()
+    {
+        return $this->hasMany(SecurityLockout::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
 
+    public function isLockedOut(): bool
+    {
+        $activeLockout = $this->securityLockouts()
+            ->where('locked_until', '>', now())
+            ->latest('locked_until')
+            ->first();
+
+        return ! is_null($activeLockout);
+    }
+
     public function isCitizen(): bool
     {
         return $this->role === 'citizen';
+    }
+
+    public function recordFailedLogin(string $ipAddress, ?string $userAgent): void
+    {
+        $this->loginAttempts()->create([
+            'ip_address' => $ipAddress,
+            'user_agent' => $userAgent,
+            'attempted_at' => now(),
+        ]);
+
+        $recentFailures = $this->loginAttempts()
+            ->where('attempted_at', '>=', now()->subHours(24))
+            ->count();
+
+        if ($recentFailures >= 5) {
+            $this->securityLockouts()->create([
+                'locked_until' => now()->addHours(48),
+                'reason' => 'Too many failed login attempts',
+            ]);
+        }
     }
 }

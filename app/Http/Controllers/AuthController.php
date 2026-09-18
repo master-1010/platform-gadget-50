@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -14,23 +16,35 @@ class AuthController extends Controller
 
     public function authenticate(Request $request)
     {
-        $validated = $request->validate([
+        $credentials = $request->validate([
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        $field = filter_var($validated['login'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $field = filter_var($credentials['login'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $user = User::query()->where($field, $credentials['login'])->first();
 
-        if (! Auth::attempt([
-            $field => $validated['login'],
-            'password' => $validated['password'],
+        if ($user && $user->isLockedOut()) {
+            return back()->withErrors(['login' => 'This account is temporarily locked due to repeated failed attempts.'])->withInput();
+        }
+
+        if (! $user || ! Auth::attempt([
+            $field => $credentials['login'],
+            'password' => $credentials['password'],
         ], $request->boolean('remember'))) {
+            if ($user) {
+                $user->recordFailedLogin($request->ip(), $request->userAgent());
+            }
+
             return back()->withErrors(['login' => 'Invalid credentials.'])->withInput();
         }
 
+        $user->loginAttempts()->delete();
+        $user->securityLockouts()->delete();
+
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard.index'));
+        return redirect()->intended($user->isAdmin() ? route('admin.index') : route('dashboard.index'));
     }
 
     public function register()
@@ -40,21 +54,21 @@ class AuthController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'username' => ['required', 'string', 'max:40', 'alpha_dash', 'unique:users,username'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'username' => ['required', 'string', 'max:40', 'alpha_dash', Rule::unique('users', 'username')],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'confirmed', 'min:12'],
             'terms' => ['accepted'],
         ]);
 
-        $user = new \App\Models\User();
-        $user->name = $validated['name'];
-        $user->username = $validated['username'];
-        $user->email = $validated['email'];
-        $user->password = bcrypt($validated['password']);
-        $user->role = 'citizen';
-        $user->save();
+        $user = User::create([
+            'name' => $data['name'],
+            'username' => $data['username'],
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'role' => 'citizen',
+        ]);
 
         Auth::login($user);
         $request->session()->regenerate();
