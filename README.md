@@ -1,6 +1,10 @@
 # Platform Gadget 50
 
-Reusable Laravel public news and citizen-journalism platform. This repository contains the working application foundation: public publishing, accounts, moderation, comments, likes, installation checks, and an admin area.
+Reusable Laravel public news and citizen-journalism platform.
+
+## Project status
+
+This repository is being implemented in controlled phases. The current code is a working foundation/vertical slice, not yet the complete Master Prompt scope. See `FEATURE-MATRIX.md` for the authoritative status and `ARCHITECTURE.md` for the no-duplication change policy.
 
 ## Requirements
 
@@ -26,12 +30,8 @@ On a fresh installation, `/install` tests the configured database and creates th
 
 ## Production deployment
 
-Point the web server document root at `public/`, set `APP_ENV=production` and `APP_DEBUG=false`, configure HTTPS and trusted proxies, run `php artisan migrate --force`, `php artisan storage:link`, `php artisan config:cache`, `php artisan route:cache`, and `php artisan view:cache`. Run `php artisan queue:work --tries=3` under a process manager and schedule `php artisan schedule:run` every minute. Never commit `.env`.
+Point the web server document root at `public/`, set `APP_ENV=production` and `APP_DEBUG=false`, configure HTTPS and trusted proxies, then follow `DEPLOYMENT-PLAN.md`. Never commit `.env`.
 
-## Security notes
+## Security
 
-Passwords use Laravel hashing, forms use CSRF protection, uploads are image-only and stored through the filesystem, public content is escaped, posts require admin approval, and admin routes are policy-protected. Configure SMTP with environment variables or a future encrypted settings provider; the default mailer is `log` and does not claim delivery.
-
-## Scope and roadmap
-
-The initial vertical slice is deliberately deployable and testable. Recommended next increments are Livewire admin tables, TOTP 2FA, encrypted SMTP settings, image variants, queued notifications, sitemap indexes, analytics consent, and a full audit-log viewer. Each should be added with migrations, policies, tests, and documented infrastructure requirements rather than placeholder controls.
+Passwords use Laravel hashing, forms use CSRF protection, uploads are image-only and stored through the filesystem, public content is escaped, posts require admin approval, and admin routes are protected. The default mailer is `log` and does not claim delivery. See `SECURITY-DESIGN.md` for the hardening roadmap.
