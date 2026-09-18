@@ -44,7 +44,15 @@
 
         <div class="flex gap-3">
             <button type="submit" class="bg-slate-900 text-white rounded px-4 py-2">Save SMTP</button>
-            <form method="POST" action="{{ route('admin.settings.test-email') }}">@csrf<button type="submit" class="bg-blue-700 text-white rounded px-4 py-2">Send test email</button></form>
+        </div>
+    </form>
+
+    <form method="POST" action="{{ route('admin.settings.test-email') }}" class="mt-6">
+        @csrf
+        <label class="block text-sm font-medium mb-1">Test email recipient</label>
+        <div class="flex gap-3">
+            <input type="email" name="email" placeholder="admin@example.com" class="w-full border rounded px-3 py-2" required />
+            <button type="submit" class="bg-blue-700 text-white rounded px-4 py-2">Send test email</button>
         </div>
     </form>
 </div>
