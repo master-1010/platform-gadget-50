@@ -1,1 +1,53 @@
-@extends('layouts.app') @section('content')<article class="max-w-3xl mx-auto bg-white p-6 rounded shadow"><p class="text-blue-700">{{ $post->category->name }}</p><h1 class="text-4xl font-black mt-2">{{ $post->title }}</h1><p class="text-sm text-slate-500 mt-3">{{ $post->anonymous?'Anonymous':$post->user->name }} · {{ $post->published_at?->toFormattedDateString() }}</p>@if($post->featured_image)<img class="w-full my-6" src="{{ Storage::url($post->featured_image) }}" alt="{{ $post->title }}">@elseif($post->external_image_url)<img class="w-full my-6" src="{{ $post->external_image_url }}" alt="{{ $post->title }}">@endif<div class="prose max-w-none mt-6">{!! nl2br(e($post->content)) !!}</div><form method="post" action="/news/{{ $post->id }}/like" class="mt-6">@csrf<button class="px-4 py-2 bg-blue-700 text-white rounded">Like ({{ $post->likes_count }})</button></form><h2 class="text-2xl font-bold mt-10">Comments</h2>@foreach($post->comments()->where('status','approved')->latest()->get() as $comment)<div class="border-b py-3"><b>{{ $comment->name }}</b><p>{{ $comment->body }}</p></div>@endforeach<form method="post" action="/news/{{ $post->id }}/comments" class="mt-5 space-y-2">@csrf<input name="name" required placeholder="Name" class="border p-2 w-full"><textarea name="body" required placeholder="Comment" class="border p-2 w-full"></textarea><button class="bg-slate-900 text-white px-4 py-2">Submit comment</button></form></article>@endsection
+@extends('layouts.app')
+
+@section('content')
+<article class="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border p-6">
+    <div class="mb-4 text-sm text-blue-700 font-semibold">
+        {{ $post->category?->name ?? 'General' }}
+    </div>
+
+    <h1 class="text-4xl font-black leading-tight">{{ $post->title }}</h1>
+
+    <div class="mt-4 text-sm text-slate-500">
+        {{ $post->anonymous ? 'Anonymous reporter' : $post->user?->name }} · {{ $post->published_at?->toFormattedDateString() ?? 'Recently' }}
+    </div>
+
+    @if($post->featured_image)
+        <img src="{{ Storage::url($post->featured_image) }}" alt="{{ $post->title }}" class="w-full mt-6 rounded-lg" />
+    @elseif($post->external_image_url)
+        <img src="{{ $post->external_image_url }}" alt="{{ $post->title }}" class="w-full mt-6 rounded-lg" />
+    @endif
+
+    <div class="prose max-w-none mt-8">
+        {!! nl2br(e($post->content)) !!}
+    </div>
+
+    <div class="mt-8 flex items-center gap-3">
+        <form method="POST" action="{{ route('news.like', $post) }}">
+            @csrf
+            <button type="submit" class="bg-slate-900 text-white rounded px-4 py-2">Like ({{ $post->likes_count }})</button>
+        </form>
+    </div>
+
+    <section class="mt-12">
+        <h2 class="text-2xl font-bold mb-4">Comments</h2>
+
+        @forelse($post->comments()->where('status', 'approved')->latest()->get() as $comment)
+            <div class="border-b py-3">
+                <div class="font-semibold">{{ $comment->name }}</div>
+                <div class="text-slate-700 mt-1">{{ $comment->body }}</div>
+            </div>
+        @empty
+            <p class="text-slate-500">No comments yet.</p>
+        @endforelse
+
+        <form method="POST" action="{{ route('news.comments.store', $post) }}" class="mt-6 space-y-3">
+            @csrf
+            <input name="name" placeholder="Your name" required class="w-full border rounded px-3 py-2" />
+            <input name="email" type="email" placeholder="Email (optional)" class="w-full border rounded px-3 py-2" />
+            <textarea name="body" rows="5" required placeholder="Write your comment" class="w-full border rounded px-3 py-2"></textarea>
+            <button type="submit" class="bg-blue-700 text-white rounded px-4 py-2">Submit comment</button>
+        </form>
+    </section>
+</article>
+@endsection
